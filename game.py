@@ -1,5 +1,8 @@
 from __future__ import print_function
 from objects import *
+import atexit
+import subprocess
+import time
 
 def validSet(card1,card2,card3):
     for att in card1.attributes:
@@ -32,13 +35,16 @@ def numSets(board):
                     setCount += 1
     return setCount
 
-def printSetCount(board):
+def setCountString(board):
+    setCountStr = ''
     setCount = numSets(board)
-    print(str(setCount) + ' set', end='')
+    setCountStr += str(setCount) + ' set'
     if setCount != 1:
-        print('s')
-    else:
-        print()
+        setCountStr += 's'
+    return setCountStr
+
+def printSetCount(board):
+    print(setCountString(board))
 
 def validateInput(userInput, numCards=12):
     if not userInput:
@@ -48,7 +54,6 @@ def validateInput(userInput, numCards=12):
         return cards
     cards = cards.split(' ')
     if len(cards) != 3:
-        print('Invalid input')
         return
     # try to convert input to integers
     intCards = []
@@ -57,12 +62,10 @@ def validateInput(userInput, numCards=12):
             intCard = int(card)
             intCards.append(intCard)
         except ValueError:
-            print('Invalid input')
             return
     # numbers should be between 0 (inclusive) and numCards (exclusive) no duplicates
     intCards.sort()
     if intCards[0] < 0 or intCards[2] >= numCards or intCards[0] == intCards[1] or intCards[1] == intCards[2]:
-        print('Invalid input')
         return
     return intCards
 
@@ -74,20 +77,24 @@ def main():
         userInput = raw_input("\n\nPlease Enter Set in space separated list (e.g. 0 10 4): ")
         cards = validateInput(userInput, numCards=len(board.cards))
         if not cards:
+            board.statusline = 'Invalid input'
             continue
         if cards == 'add':
+            board.statusline = ''
             board.addCard()
             board.addCard()
             board.addCard()
             continue
         if cards == '?':
-            printSetCount(board)
+            board.statusline = setCountString(board)
+            board.display()
             continue
         c1,c2,c3 = cards
-        print('\n\t\t' + str(board.cards[c1]) +  '\t\t' + str(board.cards[c2]) +
-                '\t\t' + str(board.cards[c3]) + '\n')
+        #print('\n\t\t' + str(board.cards[c1]) +  '\t\t' + str(board.cards[c2]) +
+                #'\t\t' + str(board.cards[c3]) + '\n')
         if validSet(board.cards[c1],board.cards[c2],board.cards[c3]):
-            print('nice set')
+            board.statusline = 'Nice Set'
+            board.display(select=cards)
             if len(board.cards) > 12:
                 board.shiftCards([c1,c2,c3])
             else:
@@ -95,10 +102,23 @@ def main():
                 board.replaceIndex(c2)
                 board.replaceIndex(c3)
             score += 1
+            time.sleep(1)
+            board.statusline = ''
         else:
-            print('Invalid Set')
+            board.statusline = 'Invalid Set'
+            board.display(select=cards)
             score -= 1
+            time.sleep(1)
+            board.statusline = ''
     print('Score: ' + str(score))
+    time.sleep(2)
+
+def restoreScreen():
+    subprocess.call(['tput','rmcup'])
 
 if __name__ == '__main__':
+    # save and restore screen
+    # http://wiki.bash-hackers.org/scripting/terminalcodes#saverestore_screen
+    subprocess.call(['tput','smcup'])
+    atexit.register(restoreScreen)
     main()
