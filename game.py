@@ -94,7 +94,7 @@ def main():
                 #'\t\t' + str(board.cards[c3]) + '\n')
         if validSet(board.cards[c1],board.cards[c2],board.cards[c3]):
             board.statusline = 'Nice Set'
-            board.display(select=cards)
+            board.display(select=cards, color=bcolors.GREEN)
             if len(board.cards) > 12:
                 board.shiftCards([c1,c2,c3])
             else:
@@ -106,7 +106,7 @@ def main():
             board.statusline = ''
         else:
             board.statusline = 'Invalid Set'
-            board.display(select=cards)
+            board.display(select=cards, color=bcolors.RED)
             score -= 1
             time.sleep(1)
             board.statusline = ''

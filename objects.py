@@ -32,7 +32,7 @@ class Card():
             st += shapes[self.attributes['shape']]
         st += bcolors.END
         return st
-    def strarray(self, cardnum, selected=False):
+    def strarray(self, cardnum, selected=False, color=bcolors.RED):
         """string array representing how the card looks when printed (with borders).
         Because we'll need to piece together each row of each card when we're printing
         the board, the string at index i of this array represents how row i should look.
@@ -44,7 +44,7 @@ class Card():
         colorPrefix = ''
         colorPostfix = ''
         if selected:
-            colorPrefix = bcolors.RED
+            colorPrefix = color
             colorPostfix = bcolors.END
         # top and bottom border
         tB = colorPrefix + ''.join(['-' for _ in range(cardWidth-2)]) + colorPostfix
@@ -126,7 +126,7 @@ class Board():
             #if i%3 == 0:
                 #print('\n\n')
             #print('\t\t' + str(self.cards[i]),end = '')
-    def string(self, select=[], reset=False):
+    def string(self, select=[], reset=False, color=bcolors.RED):
         # http://wiki.bash-hackers.org/scripting/terminalcodes#cursor_handling
         if reset:
             os.system("clear")
@@ -137,7 +137,7 @@ class Board():
             rowStrings = []
             for i in range(3*row,3*(row+1)):
                 isSelected = (i in select)
-                rowStrings.append(self.cards[i].strarray(i, selected=isSelected))
+                rowStrings.append(self.cards[i].strarray(i, selected=isSelected, color=color))
             # wtf this is so cool
             # http://stackoverflow.com/questions/6473679/transpose-list-of-lists
             transpose = map(list, zip(*rowStrings))
@@ -147,12 +147,12 @@ class Board():
         return s
     def __str__(self):
         return self.string()
-    def display(self, select=[], reset=True):
+    def display(self, select=[], color=bcolors.RED, reset=True):
         """Displays the cards on the board, with red borders around the selected cards.
         If reset is set to True, resets the Terminal cursor position to the top left
         before displaying the cards.
         """
-        print(self.string(select=select, reset=reset))
+        print(self.string(select=select, reset=reset, color=color))
         print(self.statusline)
     def replaceIndex(self,i):
         nextCard = self.deck.dealCard()
