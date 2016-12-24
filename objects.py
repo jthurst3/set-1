@@ -7,6 +7,7 @@ class bcolors:
    PURPLE = '\033[95m'
    GREEN = '\033[92m'
    RED = '\033[91m'
+   WHITE = '\033[97m'
    BOLD = '\033[1m'
    UNDERLINE = '\033[4m'
    ITALICS = '\033[3m'
@@ -32,6 +33,7 @@ class Card():
             st += shapes[self.attributes['shape']]
         st += bcolors.END
         return st
+
     def strarray(self, cardnum, selected=False, color=bcolors.RED):
         """string array representing how the card looks when printed (with borders).
         Because we'll need to piece together each row of each card when we're printing

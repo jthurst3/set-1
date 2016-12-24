@@ -2,6 +2,124 @@ import unittest
 import copy
 from objects import *
 
+class TestCard(unittest.TestCase):
+
+    def setUp(self):
+        self.c = Card('R','3','O','E')
+
+    def testInit(self):
+        self.assertEqual(self.c.attributes['color'], 'R')
+        self.assertEqual(self.c.attributes['number'], '3')
+        self.assertEqual(self.c.attributes['shape'], 'O')
+        self.assertEqual(self.c.attributes['shading'], 'E')
+
+    def testStrArray_notSelected(self):
+        # length and width
+        sArr = self.c.strarray(1)
+        self.assertEqual(len(sArr), cardHeight)
+        for s in sArr:
+            self.assertEqual(len(removeCtrlSequences(s)), cardWidth)
+        # borders -- make sure it's only borders
+        self.assertEqual(''.join(set(sArr[0].strip())), '-')
+        self.assertEqual(''.join(set(sArr[-1].strip())), '-')
+        for s in sArr[1:-1]:
+            self.assertEqual(removeCtrlSequences(s)[0], '|')
+            self.assertEqual(removeCtrlSequences(s)[-1], '|')
+        # number should be 1
+        self.assertIn('1', sArr[1])
+        # border should be default color if not selected
+        # (i.e. have no assigned color)
+        self.assertBorderHasDefaultColor(sArr)
+
+    def testStrArray_selected(self):
+        # length and width
+        sArr = self.c.strarray(1, selected=True)
+        self.assertEqual(len(sArr), cardHeight)
+        for s in sArr:
+            self.assertEqual(len(removeCtrlSequences(s)), cardWidth)
+        # borders -- make sure it's only borders
+        self.assertEqual(''.join(set(removeCtrlSequences(sArr[0].strip()))), '-')
+        self.assertEqual(''.join(set(removeCtrlSequences(sArr[-1].strip()))), '-')
+        for s in sArr[1:-1]:
+            self.assertEqual(removeCtrlSequences(s)[0], '|')
+            self.assertEqual(removeCtrlSequences(s)[-1], '|')
+        # number should be 1
+        self.assertIn('1', sArr[1])
+        # border should be red by default
+        self.assertBorderHasColor(sArr, bcolors.RED)
+
+    def testStrArray_selectedGreen(self):
+        # length and width
+        sArr = self.c.strarray(1, selected=True, color=bcolors.GREEN)
+        self.assertEqual(len(sArr), cardHeight)
+        for s in sArr:
+            self.assertEqual(len(removeCtrlSequences(s)), cardWidth)
+        # borders -- make sure it's only borders
+        self.assertEqual(''.join(set(removeCtrlSequences(sArr[0].strip()))), '-')
+        self.assertEqual(''.join(set(removeCtrlSequences(sArr[-1].strip()))), '-')
+        for s in sArr[1:-1]:
+            self.assertEqual(removeCtrlSequences(s)[0], '|')
+            self.assertEqual(removeCtrlSequences(s)[-1], '|')
+        # number should be 1
+        self.assertIn('1', sArr[1])
+        # border should be green
+        self.assertBorderHasColor(sArr, bcolors.GREEN)
+
+    def testEq(self):
+        otherCard = Card('R','3','O','E')
+        self.assertEqual(self.c, otherCard)
+        otherCard2 = Card('G','3','O','E')
+        self.assertNotEqual(self.c, otherCard)
+
+    # makes sure the border of a card does not have any bcolors assigned to it
+    def assertBorderHasDefaultColor(self, sArr):
+        # TODO: make this more modular
+        colors = [bcolors.PURPLE, bcolors.GREEN, bcolors.RED, bcolors.WHITE, bcolors.END]
+        # top
+        for color in colors:
+            self.assertNotIn(color, sArr[0])
+        # bottom
+        for color in colors:
+            self.assertNotIn(color, sArr[-1])
+        # sides
+        for s in sArr[1:-1]:
+            self.assertEqual(s[0], '|')
+            self.assertEqual(s[-1], '|')
+
+    def assertBorderHasColor(self, sArr, color):
+        # top
+        self.assertTrue(sArr[0].strip().startswith(color))
+        self.assertTrue(sArr[0].strip().endswith(bcolors.END))
+        # bottom
+        self.assertTrue(sArr[-1].strip().startswith(color))
+        self.assertTrue(sArr[-1].strip().endswith(bcolors.END))
+        # sides
+        for s in sArr[1:-1]:
+            self.assertTrue(s.startswith(color + '|' + bcolors.END))
+            self.assertTrue(s.endswith(color + '|' + bcolors.END))
+
+
+class TestDeck(unittest.TestCase):
+
+    def setUp(self):
+        self.d = Deck()
+
+    def testInit(self):
+        self.assertIsNotNone(self.d.cardList)
+        self.assertEqual(len(self.d.cardList), 81)
+        # TODO: add more assertions for this?
+
+    def testDealCard(self):
+        card = self.d.dealCard()
+        self.assertEqual(len(self.d.cardList), 80)
+        self.assertIsInstance(card, Card)
+        self.assertNotIn(card, self.d.cardList)
+
+    def testIsEmpty(self):
+        self.assertFalse(self.d.isEmpty())
+        self.d.cardList = []
+        self.assertTrue(self.d.isEmpty())
+
 class TestBoard(unittest.TestCase):
 
     def setUp(self):
@@ -71,47 +189,15 @@ class TestBoard(unittest.TestCase):
         # no cards should be replaced
         self.assertEqual(self.b.cards, oldCardArrangement[:9])
 
-class TestDeck(unittest.TestCase):
-
-    def setUp(self):
-        self.d = Deck()
-
-    def testInit(self):
-        self.assertIsNotNone(self.d.cardList)
-        self.assertEqual(len(self.d.cardList), 81)
-        # TODO: add more assertions for this?
-
-    def testDealCard(self):
-        card = self.d.dealCard()
-        self.assertEqual(len(self.d.cardList), 80)
-        self.assertIsInstance(card, Card)
-        self.assertNotIn(card, self.d.cardList)
-
-    def testIsEmpty(self):
-        self.assertFalse(self.d.isEmpty())
-        self.d.cardList = []
-        self.assertTrue(self.d.isEmpty())
-
-class TestCard(unittest.TestCase):
-
-    def setUp(self):
-        self.c = Card('R','3','O','E')
-
-    def testInit(self):
-        self.assertEqual(self.c.attributes['color'], 'R')
-        self.assertEqual(self.c.attributes['number'], '3')
-        self.assertEqual(self.c.attributes['shape'], 'O')
-        self.assertEqual(self.c.attributes['shading'], 'E')
-
-    # TODO
-    def testStr(self):
-        pass
-
-    def testEq(self):
-        otherCard = Card('R','3','O','E')
-        self.assertEqual(self.c, otherCard)
-        otherCard2 = Card('G','3','O','E')
-        self.assertNotEqual(self.c, otherCard)
+# removes terminal control sequences defined in bcolors from a string
+# TODO: make this more modular
+def removeCtrlSequences(s):
+    cSequences = [bcolors.PURPLE, bcolors.GREEN, bcolors.RED, bcolors.WHITE, bcolors.BOLD,
+            bcolors.UNDERLINE, bcolors.ITALICS, bcolors.END]
+    newS = s
+    for c in cSequences:
+        newS = newS.replace(c, '')
+    return newS
 
 if __name__ == '__main__':
     boardSuite = unittest.TestLoader().loadTestsFromTestCase(TestBoard)
