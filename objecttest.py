@@ -1,6 +1,32 @@
 import unittest
 import copy
 from objects import *
+from testhelpers import *
+
+class TestHelperFunctions(unittest.TestCase):
+
+    def testValidSet(self):
+        # c1, c2, c3 is a set
+        # c1, c4, c5 is a set
+        c1 = Card('R','1','O','E')
+        c2 = Card('R','2','O','E')
+        c3 = Card('R','3','O','E')
+        c4 = Card('G','2','<>','|')
+        c5 = Card('P','3','S','F')
+        self.assertTrue(validSet(c1, c2, c3))
+        self.assertFalse(validSet(c1, c2, c4))
+        self.assertTrue(validSet(c1, c4, c5))
+
+    def testAllSame(self):
+        self.assertTrue(allSame('E','E','E'))
+        self.assertFalse(allSame('E','E','|'))
+        self.assertFalse(allSame('E','F','|'))
+
+    def testAllDifferent(self):
+        self.assertFalse(allDifferent('E','E','E'))
+        self.assertFalse(allDifferent('E','E','|'))
+        self.assertTrue(allDifferent('E','F','|'))
+
 
 class TestCard(unittest.TestCase):
 
@@ -189,17 +215,37 @@ class TestBoard(unittest.TestCase):
         # no cards should be replaced
         self.assertEqual(self.b.cards, oldCardArrangement[:9])
 
-# removes terminal control sequences defined in bcolors from a string
-# TODO: make this more modular
-def removeCtrlSequences(s):
-    cSequences = [bcolors.PURPLE, bcolors.GREEN, bcolors.RED, bcolors.WHITE, bcolors.BOLD,
-            bcolors.UNDERLINE, bcolors.ITALICS, bcolors.END]
-    newS = s
-    for c in cSequences:
-        newS = newS.replace(c, '')
-    return newS
+    def testNumSets(self):
+        # c1, c2, c3 is a set
+        # c1, c4, c5 is a set
+        c1 = Card('R','1','O','E')
+        c2 = Card('R','2','O','E')
+        c3 = Card('R','3','O','E')
+        c4 = Card('G','2','<>','|')
+        c5 = Card('P','3','S','F')
+        self.b.cards = []
+        self.assertEqual(self.b.numSets(), 0)
+        self.assertEqual(self.b.setCountString(), '0 sets')
+        self.b.cards.append(c1)
+        self.assertEqual(self.b.numSets(), 0)
+        self.assertEqual(self.b.setCountString(), '0 sets')
+        self.b.cards.append(c2)
+        self.assertEqual(self.b.numSets(), 0)
+        self.assertEqual(self.b.setCountString(), '0 sets')
+        self.b.cards.append(c3)
+        self.assertEqual(self.b.numSets(), 1)
+        self.assertEqual(self.b.setCountString(), '1 set')
+        self.b.cards.append(c4)
+        self.assertEqual(self.b.numSets(), 1)
+        self.assertEqual(self.b.setCountString(), '1 set')
+        self.b.cards.append(c5)
+        self.assertEqual(self.b.numSets(), 2)
+        self.assertEqual(self.b.setCountString(), '2 sets')
+
 
 if __name__ == '__main__':
+    helperSuite = unittest.TestLoader().loadTestsFromTestCase(TestHelperFunctions)
+    unittest.TextTestRunner(verbosity=2,buffer=True).run(helperSuite)
     boardSuite = unittest.TestLoader().loadTestsFromTestCase(TestBoard)
     unittest.TextTestRunner(verbosity=2,buffer=True).run(boardSuite)
 
