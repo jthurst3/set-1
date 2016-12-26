@@ -1,7 +1,7 @@
 import unittest
 import copy
 from objects import *
-from testhelpers import *
+from helpers import *
 
 class TestHelperFunctions(unittest.TestCase):
 

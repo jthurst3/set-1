@@ -66,7 +66,7 @@ class Card():
         st += bcolors.END
         return st
 
-    def strarray(self, cardnum, selected=False, color=bcolors.RED):
+    def strarray(self, label, selected=False, color=bcolors.RED):
         """string array representing how the card looks when printed (with borders).
         Because we'll need to piece together each row of each card when we're printing
         the board, the string at index i of this array represents how row i should look.
@@ -84,14 +84,14 @@ class Card():
         tB = colorPrefix + ''.join(['-' for _ in range(cardWidth-2)]) + colorPostfix
         # vertical border 
         vB = colorPrefix + '|' + colorPostfix
-        cardNumber = colorPrefix + str(cardnum) + colorPostfix
+        cardNumber = colorPrefix + str(label) + colorPostfix
         rows = []
         # first row is all dashes
         rows.append(' ' + tB + ' ')
         # second row contains card number
         rows.append(vB +
                 cardNumber +
-                ''.join([' ' for _ in range(cardWidth-2-len(str(cardnum)))]) +
+                ''.join([' ' for _ in range(cardWidth-2-len(str(label)))]) +
                 vB)
         # bunch of middle rows contain blanks
         for _ in range(numTopInnerRows):
@@ -163,14 +163,15 @@ class Board():
             #if i%3 == 0:
                 #print('\n\n')
             #print('\t\t' + str(self.cards[i]),end = '')
-    def string(self, select=[], color=bcolors.RED):
+
+    def string(self, labels, select=[], color=bcolors.RED):
         s = ''
         numRows = len(self.cards)/3
         for row in range(numRows):
             rowStrings = []
             for i in range(3*row,3*(row+1)):
                 isSelected = (i in select)
-                rowStrings.append(self.cards[i].strarray(i, selected=isSelected, color=color))
+                rowStrings.append(self.cards[i].strarray(labels[i], selected=isSelected, color=color))
             # wtf this is so cool
             # http://stackoverflow.com/questions/6473679/transpose-list-of-lists
             transpose = map(list, zip(*rowStrings))
@@ -180,10 +181,10 @@ class Board():
         return s
     def __str__(self):
         return self.string()
-    def display(self, select=[], color=bcolors.RED):
+    def display(self, labels, select=[], color=bcolors.RED):
         """Displays the cards on the board, with red or green borders around the selected cards.
         """
-        print(self.string(select=select, color=color))
+        print(self.string(labels, select=select, color=color))
         print(self.statusline)
     def replaceIndex(self,i):
         nextCard = self.deck.dealCard()
