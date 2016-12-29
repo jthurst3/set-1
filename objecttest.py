@@ -166,10 +166,18 @@ class TestBoard(unittest.TestCase):
         self.assertIsInstance(self.b.cards[0], Card)
         self.assertEqual(len(self.b.cards), 12)
 
+        self.b.replaceIndex(11)
+        self.assertIsInstance(self.b.cards[11], Card)
+        self.assertEqual(len(self.b.cards), 12)
+
         self.b.deck.cardList = []
-        self.b.replaceIndex(0)
+        self.b.replaceIndex(11)
         self.assertIsInstance(self.b.cards[0], Card)
         self.assertEqual(len(self.b.cards), 11)
+
+        self.b.replaceIndex(0)
+        self.assertIsInstance(self.b.cards[0], Card)
+        self.assertEqual(len(self.b.cards), 10)
 
     def testAddCard(self):
         self.b.addCard()

@@ -1,13 +1,12 @@
 from __future__ import print_function
 from objects import *
+import helpers
 from helpers import *
 import atexit
 import signal
 import subprocess
 import sys
-import termios
 import time
-import tty
 
 # enum
 # TODO: is there a better way to do enums in Python?
@@ -19,15 +18,14 @@ class GameState:
     END = 7
     SELECT = 8
 
-# TODO: what about for boards with more than 12 cards?
 selectKeys = ['1','2','3','q','w','e','a','s','d','z','x','c']
+selectedMode = False
 
 class Game:
     def __init__(self):
         self.board = Board()
         self.score = 0
         self.state = GameState.START
-        self.selectedMode = False
         # integer array representing which cards are currently selected
         self.selectedCards = []
         self.inputstatus = ''
@@ -64,11 +62,14 @@ class Game:
         return intCards
 
     def executeStartState(self):
-        self.state = GameState.USER_INPUT
+        if selectedMode:
+            self.state = GameState.SELECT
+        else:
+            self.state = GameState.USER_INPUT
 
     def executeSelectState(self):
         # parse one character at a time
-        ch = getch()
+        ch = helpers.getch()
         # user pressed a key corresponding to a card
         if ch in selectKeys:
             self.inputstatus = ''
@@ -82,6 +83,9 @@ class Game:
             self.inputstatus = ''
             self.unsetSelectedMode()
             self.state = GameState.USER_INPUT
+        # help
+        elif ch == '?':
+            self.inputstatus = 'Help not available yet :('
         # up
         elif ord(ch) == 65:
             self.shiftLabelsUp()
@@ -90,7 +94,7 @@ class Game:
             self.shiftLabelsDown()
         # Ctrl+C
         elif ord(ch) == 3 or ord(ch) == 4:
-            system.exit(1)
+            sys.exit(1)
         # add sets
         elif ch == '+':
             # TODO: replicated code with what's in self.executeUserInputState()
@@ -147,7 +151,8 @@ class Game:
 
     # NOTE: need to manually change state
     def setSelectedMode(self):
-        self.selectedMode = True
+        global selectedMode
+        selectedMode = True
         self.labels = ['' for i in range(len(self.board.cards))]
         self.labels[:len(selectKeys)] = selectKeys
         self.selectedCards = []
@@ -155,7 +160,8 @@ class Game:
 
     # NOTE: need to manually change state
     def unsetSelectedMode(self):
-        self.selectedMode = False
+        global selectedMode
+        selectedMode = False
         self.labels = [str(i) for i in range(len(self.board.cards))]
         self.selectedCards = []
 
@@ -176,10 +182,11 @@ class Game:
         self.labels[self._labelStart:self._labelStart+len(selectKeys)] = selectKeys
 
     def executeNiceSetState(self):
+        global selectedMode
         time.sleep(1)
         c1, c2, c3 = self.selectedCards
         self.score += 1
-        if len(self.board.cards) > 12:
+        if self.board.deck.isEmpty() or len(self.board.cards) > 12:
             self.board.shiftCards([c1, c2, c3])
             if self._labelStart + len(selectKeys) > len(self.board.cards):
                 self.shiftLabelsUp()
@@ -191,17 +198,18 @@ class Game:
         self.selectedCards = []
         if self.board.deck.isEmpty() and self.board.numSets() == 0:
             self.state = GameState.END
-        elif self.selectedMode:
+        elif selectedMode:
             self.state = GameState.SELECT
         else:
             self.state = GameState.USER_INPUT
 
     def executeInvalidSetState(self):
+        global selectedMode
         time.sleep(1)
         self.score -= 1
         self.inputstatus = ''
         self.selectedCards = []
-        if self.selectedMode:
+        if selectedMode:
             self.state = GameState.SELECT
         else:
             self.state = GameState.USER_INPUT
@@ -223,7 +231,9 @@ class Game:
             else:
                 print('Invalid game state ', self.state, 'exiting.')
                 sys.exit(1)
+        self.display_end_score()
         time.sleep(2)
+        return self.score
 
     def display(self):
         # clear screen and put text in position
@@ -258,6 +268,15 @@ class Game:
         s[scoreStringStart:scoreStringStart+len(scoreString)] = scoreString
         return ''.join(s)
 
+    def display_end_score(self):
+        # clear screen and put text in position
+        # http://wiki.bash-hackers.org/scripting/terminalcodes#cursor_handling
+        os.system("clear")
+        print('\033[H')
+        for _ in range(3*cardHeight/2):
+            print('\n')
+        print(self.scoreString().center(3*cardWidth))
+
     def scoreString(self):
         scoreStr = 'Score: ' + str(self.score)
         if self.score > 0:
@@ -268,27 +287,23 @@ class Game:
             return scoreStr
 
 def main():
-    game = Game()
-    game.play()
+    while True:
+        game = Game()
+        game.play()
+        play_again()
+
+def play_again():
+    for _ in range(3*cardHeight/2):
+        print('\n')
+    again = raw_input('Play again? (y/n)')
+    if again != 'y':
+        sys.exit(0)
 
 def saveScreen():
     subprocess.call(['tput','smcup'])
 
 def restoreScreen():
     subprocess.call(['tput','rmcup'])
-
-# gets one character from stdin, without waiting for a newline
-# TODO: really hacky
-# http://code.activestate.com/recipes/134892/
-def getch():
-    fd = sys.stdin.fileno()
-    old_settings = termios.tcgetattr(fd)
-    try:
-        tty.setraw(sys.stdin.fileno())
-        ch = sys.stdin.read(1)
-    finally:
-        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-    return ch
 
 if __name__ == '__main__':
     # save and restore screen

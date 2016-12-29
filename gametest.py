@@ -1,11 +1,21 @@
+from mock import MagicMock
 import unittest
+import game
 from game import *
+import helpers
 from helpers import *
+import time
+
+# TODO:
+#   - test other states going to select state
+#   - test new game functionality (including staying in select state)
+#   - refactor tests to take duplicate testing code and put it into functions
 
 class TestGame(unittest.TestCase):
 
     def setUp(self):
         self.g = Game()
+        time.sleep = MagicMock()
 
     def testInit(self):
         self.assertIsNotNone(self.g.board)
@@ -47,18 +57,148 @@ class TestGame(unittest.TestCase):
         self.g.executeStartState()
         self.assertIsInState(GameState.USER_INPUT)
 
-    def testSelectState(self):
+    def testSelectState_invalidInput(self):
         # SELECT --> SELECT
-        # TODO: should fail, add features to make it pass
         self.g.state = GameState.SELECT
+        helpers.getch = MagicMock(return_value='~')
+        self.g.setSelectedMode()
         self.g.executeSelectState()
+        self.assertEqual(self.g.inputstatus, 'Invalid character with ASCII value ' + str(ord('~')))
+        self.assertTrue(game.selectedMode)
+        self.assertEqual(len(self.g.selectedCards), 0)
+        self.assertEqual(len(self.g.board.cards), 12)
+        self.assertEqual(self.g.labels, selectKeys)
         self.assertIsInState(GameState.SELECT)
 
-    def testUserInputState(self):
-        # USER_INPUT --> USER_INPUT or NICE_SET or INVALID_SET
-        # TODO: how do we test this if it involves user input?
-        # until we figure out a way to do this, this test should fail
+    def testSelectState_toggleCard(self):
+        # SELECT --> SELECT
+        self.g.state = GameState.SELECT
+        self.g.setSelectedMode()
+        # toggle
+        helpers.getch = MagicMock(return_value='1')
+        self.g.executeSelectState()
+        self.assertEqual(self.g.inputstatus, '')
+        self.assertTrue(game.selectedMode)
+        self.assertEqual(len(self.g.selectedCards), 1)
+        self.assertEqual(self.g.selectedCards, [0])
+        self.assertIsInState(GameState.SELECT)
+        # un-toggle
+        helpers.getch = MagicMock(return_value='1')
+        self.g.executeSelectState()
+        self.assertEqual(self.g.inputstatus, '')
+        self.assertEqual(len(self.g.selectedCards), 0)
+        self.assertIsInState(GameState.SELECT)
+
+    def testSelectState_toggleSelectState(self):
+        # SELECT --> USER_INPUT
+        self.g.state = GameState.SELECT
+        self.g.setSelectedMode()
+        # toggle
+        helpers.getch = MagicMock(return_value='/')
+        self.g.executeSelectState()
+        self.assertEqual(self.g.inputstatus, '')
+        self.assertFalse(game.selectedMode)
+        self.assertEqual(len(self.g.selectedCards), 0)
+        self.assertIsInState(GameState.USER_INPUT)
+        self.assertEqual(self.g.labels,
+                ['0','1','2','3','4','5','6','7','8','9','10','11'])
+
+    def testSelectState_help(self):
+        # SELECT --> SELECT
+        self.g.state = GameState.SELECT
+        self.g.setSelectedMode()
+        helpers.getch = MagicMock(return_value='?')
+        self.g.executeSelectState()
+        # TODO: not implemented
         self.assertTrue(False)
+
+    def testUserInputState_invalidInput(self):
+        # USER_INPUT --> USER_INPUT
+        self.g.state = GameState.USER_INPUT
+        self.g.getUserInput = MagicMock(return_value='asdf')
+        self.g.executeUserInputState()
+        self.assertEqual(self.g.inputstatus, 'Invalid input')
+        self.assertFalse(game.selectedMode)
+        self.assertEqual(len(self.g.selectedCards), 0)
+        self.assertEqual(len(self.g.board.cards), 12)
+        self.assertEqual(self.g.labels,
+                ['0','1','2','3','4','5','6','7','8','9','10','11'])
+        self.assertIsInState(GameState.USER_INPUT)
+
+    def testUserInputState_add(self):
+        # USER_INPUT --> USER_INPUT
+        self.g.state = GameState.USER_INPUT
+        self.g.getUserInput = MagicMock(return_value='add')
+        self.g.executeUserInputState()
+        self.assertEqual(self.g.inputstatus, '')
+        self.assertFalse(game.selectedMode)
+        self.assertEqual(len(self.g.selectedCards), 0)
+        self.assertEqual(len(self.g.board.cards), 15)
+        self.assertEqual(self.g.labels,
+                ['0','1','2','3','4','5','6','7','8','9','10','11','12','13','14'])
+        self.assertIsInState(GameState.USER_INPUT)
+
+    def testUserInputState_help(self):
+        # USER_INPUT --> USER_INPUT
+        self.g.state = GameState.USER_INPUT
+        self.g.getUserInput = MagicMock(return_value='?')
+        self.g.executeUserInputState()
+        # TODO: not implemented (should fail)
+        self.assertTrue(False)
+        self.assertFalse(game.selectedMode)
+        self.assertEqual(len(self.g.selectedCards), 0)
+        self.assertEqual(len(self.g.board.cards), 12)
+        self.assertEqual(self.g.labels,
+                ['0','1','2','3','4','5','6','7','8','9','10','11'])
+        self.assertIsInState(GameState.USER_INPUT)
+
+    def testUserInputState_select(self):
+        # USER_INPUT --> SELECT
+        self.g.state = GameState.USER_INPUT
+        self.g.getUserInput = MagicMock(return_value='/')
+        self.g.executeUserInputState()
+        self.assertEqual(self.g.inputstatus, '')
+        self.assertTrue(game.selectedMode)
+        self.assertEqual(len(self.g.selectedCards), 0)
+        self.assertEqual(len(self.g.board.cards), 12)
+        self.assertEqual(self.g.labels, selectKeys)
+        self.assertIsInState(GameState.SELECT)
+
+    def testUserInputState_niceSet(self):
+        # c1, c2, c3 is a set
+        c1 = Card('R','1','O','E')
+        c2 = Card('R','2','O','E')
+        c3 = Card('R','3','O','E')
+        # USER_INPUT --> NICE_SET
+        self.g.state = GameState.USER_INPUT
+        self.g.board.cards[:3] = [c1, c2, c3]
+        self.g.getUserInput = MagicMock(return_value='0 1 2')
+        self.g.executeUserInputState()
+        self.assertEqual(self.g.inputstatus, 'Nice set')
+        self.assertFalse(game.selectedMode)
+        self.assertEqual(len(self.g.selectedCards), 3)
+        self.assertEqual(len(self.g.board.cards), 12)
+        self.assertEqual(self.g.labels,
+                ['0','1','2','3','4','5','6','7','8','9','10','11'])
+        self.assertIsInState(GameState.NICE_SET)
+
+    def testUserInputState_invalidSet(self):
+        # c1, c2, c3 is not a set
+        c1 = Card('R','1','O','E')
+        c2 = Card('R','2','O','E')
+        c3 = Card('G','3','O','E')
+        # USER_INPUT --> INVALID_SET
+        self.g.state = GameState.USER_INPUT
+        self.g.board.cards[:3] = [c1, c2, c3]
+        self.g.getUserInput = MagicMock(return_value='0 1 2')
+        self.g.executeUserInputState()
+        self.assertEqual(self.g.inputstatus, 'Invalid set')
+        self.assertFalse(game.selectedMode)
+        self.assertEqual(len(self.g.selectedCards), 3)
+        self.assertEqual(len(self.g.board.cards), 12)
+        self.assertEqual(self.g.labels,
+                ['0','1','2','3','4','5','6','7','8','9','10','11'])
+        self.assertIsInState(GameState.INVALID_SET)
 
     # TODO: mock out the time.sleep call
     def testNiceSetState_12Cards(self):
